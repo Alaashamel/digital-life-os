@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digital Life OS</title>
+    
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/themes.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/apps/notes.css">
+    <link rel="stylesheet" href="css/apps/music.css">
+    <link rel="stylesheet" href="css/apps/calendar.css">
+    <link rel="stylesheet" href="css/apps/chatbot.css">
+    <link rel="stylesheet" href="css/apps/weather.css">
+    <link rel="stylesheet" href="css/apps/games.css">
+</head>
+<body>
+    <!-- Desktop Container -->
+    <div id="desktop" class="desktop">
+        <!-- Desktop Background -->
+        <div id="background" class="desktop-background"></div>
+        
+        <!-- Desktop Area -->
+        <div id="desktop-area" class="desktop-area">
+            <!-- Windows will be dynamically inserted here -->
+        </div>
+        
+        <!-- Taskbar -->
+        <div id="taskbar" class="taskbar">
+            <div class="taskbar-content">
+                <!-- System Clock -->
+                <div id="system-clock" class="system-clock">
+                    <span id="clock-time">00:00</span>
+                    <span id="clock-date" class="date-text"></span>
+                </div>
+                
+                <!-- App Icons -->
+                <div id="app-launcher" class="app-launcher">
+                    <!-- App icons will be dynamically inserted here -->
+                </div>
+                
+                <!-- Taskbar Windows -->
+                <div id="taskbar-windows" class="taskbar-windows">
+                    <!-- Open window indicators will be inserted here -->
+                </div>
+                
+                <!-- System Controls -->
+                <div class="system-controls">
+                    <button id="theme-toggle" class="control-btn" title="Toggle Theme">
+                        <span class="icon">🌙</span>
+                    </button>
+                    <button id="settings-btn" class="control-btn" title="Settings">
+                        <span class="icon">⚙️</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Container -->
+    <div id="notifications" class="notifications-container"></div>
+
+    <!-- Scripts -->
+    <script src="js/utils/constants.js"></script>
+    <script src="js/utils/helpers.js"></script>
+    <script src="js/utils/validators.js"></script>
+    <script src="js/core/storage.js"></script>
+    <script src="js/core/theme.js"></script>
+    <script src="js/core/notifications.js"></script>
+    <script src="js/core/desktop.js"></script>
+    <script src="js/core/taskbar.js"></script>
+    
+    <!-- App Scripts -->
+    <script src="js/apps/notes/app.js"></script>
+    <script src="js/apps/music/app.js"></script>
+    <script src="js/apps/calendar/app.js"></script>
+    <script src="js/apps/chatbot/app.js"></script>
+    <script src="js/apps/weather/app.js"></script>
+    <script src="js/apps/games/app.js"></script>
+    
+    <!-- Main App Initialization -->
+    <script src="js/main.js"></script>
+</body>
+</html>
