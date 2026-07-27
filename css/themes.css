@@ -1,0 +1,132 @@
+/* ============================================================
+   Digital Life OS - Theme Definitions
+   Multi-theme support: Dark, Light, Neon
+   ============================================================ */
+
+/* ============================================================
+   Dark Theme (Default)
+   ============================================================ */
+
+html[data-theme="dark"],
+html:not([data-theme]) {
+    --bg-primary: #0d0d0d;
+    --bg-secondary: #1a1a1a;
+    --bg-tertiary: #2d2d2d;
+    --text-primary: #ffffff;
+    --text-secondary: #b0b0b0;
+    --text-muted: #808080;
+    --accent-color: #00d4ff;
+    --accent-hover: #00e6ff;
+    --border-color: #333333;
+    --success-color: #00ff88;
+    --error-color: #ff0055;
+    --warning-color: #ffaa00;
+    --info-color: #0099ff;
+}
+
+/* ============================================================
+   Light Theme
+   ============================================================ */
+
+html[data-theme="light"] {
+    --bg-primary: #f5f5f5;
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #e8e8e8;
+    --text-primary: #1a1a1a;
+    --text-secondary: #666666;
+    --text-muted: #999999;
+    --accent-color: #0078d4;
+    --accent-hover: #005a9e;
+    --border-color: #e0e0e0;
+    --success-color: #107c10;
+    --error-color: #e81123;
+    --warning-color: #ffb900;
+    --info-color: #0078d4;
+}
+
+/* ============================================================
+   Neon Theme
+   ============================================================ */
+
+html[data-theme="neon"] {
+    --bg-primary: #0a0a0a;
+    --bg-secondary: #0f0f1e;
+    --bg-tertiary: #1a1a33;
+    --text-primary: #00ffff;
+    --text-secondary: #ff00ff;
+    --text-muted: #808080;
+    --accent-color: #ff006e;
+    --accent-hover: #ff00aa;
+    --border-color: #00ffff;
+    --success-color: #00ff41;
+    --error-color: #ff006e;
+    --warning-color: #ffbe0b;
+    --info-color: #00d9ff;
+}
+
+/* ============================================================
+   Theme-Specific Animations for Neon
+   ============================================================ */
+
+html[data-theme="neon"] .window {
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);
+}
+
+html[data-theme="neon"] .window.active {
+    box-shadow: 0 0 30px rgba(255, 0, 110, 0.5), 
+                0 0 20px rgba(0, 255, 255, 0.3);
+    animation: neon-glow var(--transition-slow) ease-in-out infinite;
+}
+
+@keyframes neon-glow {
+    0%, 100% {
+        box-shadow: 0 0 30px rgba(255, 0, 110, 0.5), 
+                    0 0 20px rgba(0, 255, 255, 0.3);
+    }
+    50% {
+        box-shadow: 0 0 40px rgba(255, 0, 110, 0.7), 
+                    0 0 30px rgba(0, 255, 255, 0.5);
+    }
+}
+
+html[data-theme="neon"] .app-icon:hover {
+    box-shadow: 0 0 15px rgba(255, 0, 110, 0.5);
+}
+
+html[data-theme="neon"] .control-btn:hover {
+    box-shadow: 0 0 15px rgba(255, 0, 110, 0.5);
+}
+
+/* ============================================================
+   Custom Theme Support
+   ============================================================ */
+
+html[data-theme="custom"] {
+    --bg-primary: var(--custom-bg-primary, #0d0d0d);
+    --bg-secondary: var(--custom-bg-secondary, #1a1a1a);
+    --bg-tertiary: var(--custom-bg-tertiary, #2d2d2d);
+    --text-primary: var(--custom-text-primary, #ffffff);
+    --text-secondary: var(--custom-text-secondary, #b0b0b0);
+    --text-muted: var(--custom-text-muted, #808080);
+    --accent-color: var(--custom-accent-color, #00d4ff);
+    --accent-hover: var(--custom-accent-hover, #00e6ff);
+    --border-color: var(--custom-border-color, #333333);
+}
+
+/* ============================================================
+   Smooth Theme Transitions
+   ============================================================ */
+
+html,
+body,
+* {
+    transition: background-color var(--transition-normal),
+                color var(--transition-normal),
+                border-color var(--transition-normal),
+                box-shadow var(--transition-normal);
+}
+
+/* Disable transitions during rapid theme changes */
+html.theme-changing * {
+    transition: none;
+}
