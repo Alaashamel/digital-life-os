@@ -30,7 +30,8 @@ class DesktopWindow {
             id: this.id,
             'data-app-id': id,
             style: {
-                width: `${width}px`,\n                height: `${height}px`,
+                width: `${width}px`,
+                height: `${height}px`,
                 left: `${Math.random() * (window.innerWidth - width)}px`,
                 top: `${Math.random() * (window.innerHeight - CONFIG.TASKBAR_HEIGHT - height)}px`,
                 zIndex: this.zIndex,
@@ -94,4 +95,298 @@ class DesktopWindow {
     
     /**
      * Convert touch event to mouse-like event
-     * @private\n     */\n    getTouchEvent(touchEvent) {\n        const touch = touchEvent.touches[0];\n        return {\n            clientX: touch.clientX,\n            clientY: touch.clientY,\n            preventDefault: () => touchEvent.preventDefault(),\n        };\n    }\n    \n    /**\n     * Start dragging window\n     * @private\n     */\n    startDrag(e) {\n        if (e.target.closest('.window-controls')) return;\n        \n        this.isDragging = true;\n        const rect = this.element.getBoundingClientRect();\n        this.dragOffsetX = e.clientX - rect.left;\n        this.dragOffsetY = e.clientY - rect.top;\n        this.element.classList.add('dragging');\n    }\n    \n    /**\n     * Drag window\n     * @private\n     */\n    drag(e) {\n        if (!this.isDragging) return;\n        \n        const x = e.clientX - this.dragOffsetX;\n        const y = e.clientY - this.dragOffsetY;\n        \n        const maxX = window.innerWidth - this.element.offsetWidth;\n        const maxY = window.innerHeight - CONFIG.TASKBAR_HEIGHT - this.element.offsetHeight;\n        \n        this.element.style.left = clamp(x, 0, maxX) + 'px';\n        this.element.style.top = clamp(y, 0, maxY) + 'px';\n    }\n    \n    /**\n     * Stop dragging\n     * @private\n     */\n    stopDrag() {\n        if (this.isDragging) {\n            this.isDragging = false;\n            this.element.classList.remove('dragging');\n            this.savePosition();\n        }\n    }\n    \n    /**\n     * Start resizing\n     * @private\n     */\n    startResize(e) {\n        this.isResizing = true;\n        this.lastX = e.clientX;\n        this.lastY = e.clientY;\n        this.element.classList.add('resizing');\n    }\n    \n    /**\n     * Resize window\n     * @private\n     */\n    resize(e) {\n        if (!this.isResizing) return;\n        \n        const deltaX = e.clientX - this.lastX;\n        const deltaY = e.clientY - this.lastY;\n        \n        let newWidth = this.element.offsetWidth + deltaX;\n        let newHeight = this.element.offsetHeight + deltaY;\n        \n        newWidth = clamp(newWidth, CONFIG.WINDOW_MIN_WIDTH, window.innerWidth);\n        newHeight = clamp(newHeight, CONFIG.WINDOW_MIN_HEIGHT, window.innerHeight - CONFIG.TASKBAR_HEIGHT);\n        \n        this.element.style.width = newWidth + 'px';\n        this.element.style.height = newHeight + 'px';\n        \n        this.lastX = e.clientX;\n        this.lastY = e.clientY;\n        \n        window.dispatchEvent(new CustomEvent('window-resized', { detail: { windowId: this.id } }));\n    }\n    \n    /**\n     * Stop resizing\n     * @private\n     */\n    stopResize() {\n        if (this.isResizing) {\n            this.isResizing = false;\n            this.element.classList.remove('resizing');\n            this.savePosition();\n        }\n    }\n    \n    /**\n     * Focus window\n     */\n    focus() {\n        document.querySelectorAll('.window').forEach(w => w.classList.remove('active'));\n        this.element.classList.add('active');\n        this.element.style.zIndex = ++Desktop.maxZIndex;\n    }\n    \n    /**\n     * Minimize window\n     */\n    minimize() {\n        this.isMinimized = true;\n        this.element.style.display = 'none';\n        Taskbar.updateWindowIndicators();\n    }\n    \n    /**\n     * Restore minimized window\n     */\n    restore() {\n        this.isMinimized = false;\n        this.element.style.display = 'flex';\n        this.focus();\n        Taskbar.updateWindowIndicators();\n    }\n    \n    /**\n     * Maximize/restore window\n     */\n    maximize() {\n        if (this.element.classList.contains('maximized')) {\n            this.element.classList.remove('maximized');\n            this.restorePosition();\n        } else {\n            this.element.classList.add('maximized');\n            this.element.style.left = '0';\n            this.element.style.top = '0';\n            this.element.style.width = window.innerWidth + 'px';\n            this.element.style.height = (window.innerHeight - CONFIG.TASKBAR_HEIGHT) + 'px';\n        }\n    }\n    \n    /**\n     * Save window position\n     */\n    savePosition() {\n        const state = Storage.get(CONFIG.STORAGE_KEYS.WINDOWS_STATE, {});\n        state[this.id] = {\n            left: this.element.style.left,\n            top: this.element.style.top,\n            width: this.element.style.width,\n            height: this.element.style.height,\n        };\n        Storage.set(CONFIG.STORAGE_KEYS.WINDOWS_STATE, state);\n    }\n    \n    /**\n     * Restore window position\n     */\n    restorePosition() {\n        const state = Storage.get(CONFIG.STORAGE_KEYS.WINDOWS_STATE, {})[this.id];\n        if (state) {\n            Object.assign(this.element.style, state);\n        }\n    }\n    \n    /**\n     * Close window\n     */\n    close() {\n        this.element.remove();\n        Desktop.windows = Desktop.windows.filter(w => w.id !== this.id);\n        Taskbar.updateWindowIndicators();\n        window.dispatchEvent(new CustomEvent('window-closed', { detail: { appId: this.app.id } }));\n    }\n    \n    /**\n     * Get window content element\n     */\n    getContent() {\n        return this.element.querySelector('.window-content');\n    }\n}\n\nclass DesktopManager {\n    constructor() {\n        this.windows = [];\n        this.maxZIndex = CONFIG.Z_INDEX.WINDOW;\n        this.desktopArea = null;\n        this.init();\n    }\n    \n    /**\n     * Initialize desktop\n     */\n    init() {\n        this.desktopArea = document.getElementById('desktop-area');\n        this.setupClockUpdate();\n        this.loadWindows();\n        window.addEventListener('resize', () => this.onWindowResize());\n    }\n    \n    /**\n     * Update system clock\n     * @private\n     */\n    setupClockUpdate() {\n        const updateClock = () => {\n            const now = new Date();\n            const timeEl = document.getElementById('clock-time');\n            const dateEl = document.getElementById('clock-date');\n            \n            if (timeEl) {\n                timeEl.textContent = formatTime(now);\n            }\n            if (dateEl) {\n                dateEl.textContent = formatDate(now);\n            }\n        };\n        \n        updateClock();\n        setInterval(updateClock, 1000);\n    }\n    \n    /**\n     * Open app window\n     */\n    openWindow(app) {\n        const existingWindow = this.windows.find(w => w.app.id === app.id);\n        \n        if (existingWindow) {\n            if (existingWindow.isMinimized) {\n                existingWindow.restore();\n            } else {\n                existingWindow.focus();\n            }\n            return existingWindow;\n        }\n        \n        const window = new DesktopWindow(app);\n        this.desktopArea.appendChild(window.element);\n        window.focus();\n        this.windows.push(window);\n        \n        Taskbar.updateWindowIndicators();\n        return window;\n    }\n    \n    /**\n     * Close app window\n     */\n    closeWindow(appId) {\n        const window = this.windows.find(w => w.app.id === appId);\n        if (window) {\n            window.close();\n        }\n    }\n    \n    /**\n     * Load persisted windows\n     * @private\n     */\n    loadWindows() {\n        // Windows will be restored when apps are launched\n    }\n    \n    /**\n     * Handle window resize\n     * @private\n     */\n    onWindowResize() {\n        this.windows.forEach(window => {\n            if (!window.element.classList.contains('maximized')) {\n                const maxX = window.innerWidth - window.element.offsetWidth;\n                const maxY = window.innerHeight - CONFIG.TASKBAR_HEIGHT - window.element.offsetHeight;\n                \n                const left = Math.min(parseInt(window.element.style.left), maxX);\n                const top = Math.min(parseInt(window.element.style.top), maxY);\n                \n                window.element.style.left = left + 'px';\n                window.element.style.top = top + 'px';\n            } else {\n                window.element.style.width = window.innerWidth + 'px';\n                window.element.style.height = (window.innerHeight - CONFIG.TASKBAR_HEIGHT) + 'px';\n            }\n        });\n    }\n}\n\n// Global desktop manager\nconst Desktop = new DesktopManager();
+     * @private
+     */
+    getTouchEvent(touchEvent) {
+        const touch = touchEvent.touches[0];
+        return {
+            clientX: touch.clientX,
+            clientY: touch.clientY,
+            preventDefault: () => touchEvent.preventDefault(),
+        };
+    }
+    
+    /**
+     * Start dragging window
+     * @private
+     */
+    startDrag(e) {
+        if (e.target.closest('.window-controls')) return;
+        
+        this.isDragging = true;
+        const rect = this.element.getBoundingClientRect();
+        this.dragOffsetX = e.clientX - rect.left;
+        this.dragOffsetY = e.clientY - rect.top;
+        this.element.classList.add('dragging');
+    }
+    
+    /**
+     * Drag window
+     * @private
+     */
+    drag(e) {
+        if (!this.isDragging) return;
+        
+        const x = e.clientX - this.dragOffsetX;
+        const y = e.clientY - this.dragOffsetY;
+        
+        const maxX = window.innerWidth - this.element.offsetWidth;
+        const maxY = window.innerHeight - CONFIG.TASKBAR_HEIGHT - this.element.offsetHeight;
+        
+        this.element.style.left = clamp(x, 0, maxX) + 'px';
+        this.element.style.top = clamp(y, 0, maxY) + 'px';
+    }
+    
+    /**
+     * Stop dragging
+     * @private
+     */
+    stopDrag() {
+        if (this.isDragging) {
+            this.isDragging = false;
+            this.element.classList.remove('dragging');
+            this.savePosition();
+        }
+    }
+    
+    /**
+     * Start resizing
+     * @private
+     */
+    startResize(e) {
+        this.isResizing = true;
+        this.lastX = e.clientX;
+        this.lastY = e.clientY;
+        this.element.classList.add('resizing');
+    }
+    
+    /**
+     * Resize window
+     * @private
+     */
+    resize(e) {
+        if (!this.isResizing) return;
+        
+        const deltaX = e.clientX - this.lastX;
+        const deltaY = e.clientY - this.lastY;
+        
+        let newWidth = this.element.offsetWidth + deltaX;
+        let newHeight = this.element.offsetHeight + deltaY;
+        
+        newWidth = clamp(newWidth, CONFIG.WINDOW_MIN_WIDTH, window.innerWidth);
+        newHeight = clamp(newHeight, CONFIG.WINDOW_MIN_HEIGHT, window.innerHeight - CONFIG.TASKBAR_HEIGHT);
+        
+        this.element.style.width = newWidth + 'px';
+        this.element.style.height = newHeight + 'px';
+        
+        this.lastX = e.clientX;
+        this.lastY = e.clientY;
+        
+        window.dispatchEvent(new CustomEvent('window-resized', { detail: { windowId: this.id } }));
+    }
+    
+    /**
+     * Stop resizing
+     * @private
+     */
+    stopResize() {
+        if (this.isResizing) {
+            this.isResizing = false;
+            this.element.classList.remove('resizing');
+            this.savePosition();
+        }
+    }
+    
+    /**
+     * Focus window
+     */
+    focus() {
+        document.querySelectorAll('.window').forEach(w => w.classList.remove('active'));
+        this.element.classList.add('active');
+        this.element.style.zIndex = ++Desktop.maxZIndex;
+    }
+    
+    /**
+     * Minimize window
+     */
+    minimize() {
+        this.isMinimized = true;
+        this.element.style.display = 'none';
+        Taskbar.updateWindowIndicators();
+    }
+    
+    /**
+     * Restore minimized window
+     */
+    restore() {
+        this.isMinimized = false;
+        this.element.style.display = 'flex';
+        this.focus();
+        Taskbar.updateWindowIndicators();
+    }
+    
+    /**
+     * Maximize/restore window
+     */
+    maximize() {
+        if (this.element.classList.contains('maximized')) {
+            this.element.classList.remove('maximized');
+            this.restorePosition();
+        } else {
+            this.element.classList.add('maximized');
+            this.element.style.left = '0';
+            this.element.style.top = '0';
+            this.element.style.width = window.innerWidth + 'px';
+            this.element.style.height = (window.innerHeight - CONFIG.TASKBAR_HEIGHT) + 'px';
+        }
+    }
+    
+    /**
+     * Save window position
+     */
+    savePosition() {
+        const state = Storage.get(CONFIG.STORAGE_KEYS.WINDOWS_STATE, {});
+        state[this.id] = {
+            left: this.element.style.left,
+            top: this.element.style.top,
+            width: this.element.style.width,
+            height: this.element.style.height,
+        };
+        Storage.set(CONFIG.STORAGE_KEYS.WINDOWS_STATE, state);
+    }
+    
+    /**
+     * Restore window position
+     */
+    restorePosition() {
+        const state = Storage.get(CONFIG.STORAGE_KEYS.WINDOWS_STATE, {})[this.id];
+        if (state) {
+            Object.assign(this.element.style, state);
+        }
+    }
+    
+    /**
+     * Close window
+     */
+    close() {
+        this.element.remove();
+        Desktop.windows = Desktop.windows.filter(w => w.id !== this.id);
+        Taskbar.updateWindowIndicators();
+        window.dispatchEvent(new CustomEvent('window-closed', { detail: { appId: this.app.id } }));
+    }
+    
+    /**
+     * Get window content element
+     */
+    getContent() {
+        return this.element.querySelector('.window-content');
+    }
+}
+
+class DesktopManager {
+    constructor() {
+        this.windows = [];
+        this.maxZIndex = CONFIG.Z_INDEX.WINDOW;
+        this.desktopArea = null;
+        this.init();
+    }
+    
+    /**
+     * Initialize desktop
+     */
+    init() {
+        this.desktopArea = document.getElementById('desktop-area');
+        this.setupClockUpdate();
+        this.loadWindows();
+        window.addEventListener('resize', () => this.onWindowResize());
+    }
+    
+    /**
+     * Update system clock
+     * @private
+     */
+    setupClockUpdate() {
+        const updateClock = () => {
+            const now = new Date();
+            const timeEl = document.getElementById('clock-time');
+            const dateEl = document.getElementById('clock-date');
+            
+            if (timeEl) {
+                timeEl.textContent = formatTime(now);
+            }
+            if (dateEl) {
+                dateEl.textContent = formatDate(now);
+            }
+        };
+        
+        updateClock();
+        setInterval(updateClock, 1000);
+    }
+    
+    /**
+     * Open app window
+     */
+    openWindow(app) {
+        const existingWindow = this.windows.find(w => w.app.id === app.id);
+        
+        if (existingWindow) {
+            if (existingWindow.isMinimized) {
+                existingWindow.restore();
+            } else {
+                existingWindow.focus();
+            }
+            return existingWindow;
+        }
+        
+        const window = new DesktopWindow(app);
+        this.desktopArea.appendChild(window.element);
+        window.focus();
+        this.windows.push(window);
+        
+        Taskbar.updateWindowIndicators();
+        return window;
+    }
+    
+    /**
+     * Close app window
+     */
+    closeWindow(appId) {
+        const window = this.windows.find(w => w.app.id === appId);
+        if (window) {
+            window.close();
+        }
+    }
+    
+    /**
+     * Load persisted windows
+     * @private
+     */
+    loadWindows() {
+        // Windows will be restored when apps are launched
+    }
+    
+    /**
+     * Handle window resize
+     * @private
+     */
+    onWindowResize() {
+        this.windows.forEach(window => {
+            if (!window.element.classList.contains('maximized')) {
+                const maxX = window.innerWidth - window.element.offsetWidth;
+                const maxY = window.innerHeight - CONFIG.TASKBAR_HEIGHT - window.element.offsetHeight;
+                
+                const left = Math.min(parseInt(window.element.style.left), maxX);
+                const top = Math.min(parseInt(window.element.style.top), maxY);
+                
+                window.element.style.left = left + 'px';
+                window.element.style.top = top + 'px';
+            } else {
+                window.element.style.width = window.innerWidth + 'px';
+                window.element.style.height = (window.innerHeight - CONFIG.TASKBAR_HEIGHT) + 'px';
+            }
+        });
+    }
+}
+
+// Global desktop manager
+const Desktop = new DesktopManager();

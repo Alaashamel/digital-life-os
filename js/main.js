@@ -1,2 +1,236 @@
 /* ============================================================
-   Digital Life OS - Main Application Init\n   Application entry point and initialization\n   ============================================================ */\n\nclass DigitalLifeOS {\n    constructor() {\n        this.version = CONFIG.APP_VERSION;\n        this.isReady = false;\n        this.startTime = Date.now();\n    }\n    \n    /**\n     * Initialize the application\n     */\n    async init() {\n        try {\n            console.log(`🖥️  Digital Life OS v${this.version} - Initializing...`);\n            \n            // Load user settings\n            await this.loadUserSettings();\n            \n            // Initialize systems\n            this.initializeSystems();\n            \n            // Setup event listeners\n            this.setupEventListeners();\n            \n            // Mark as ready\n            this.isReady = true;\n            window.dispatchEvent(new CustomEvent('app-ready'));\n            \n            const loadTime = Date.now() - this.startTime;\n            console.log(`✓ Digital Life OS loaded in ${loadTime}ms`);\n            \n            // Show welcome notification\n            this.showWelcome();\n            \n        } catch (error) {\n            console.error('Failed to initialize Digital Life OS:', error);\n            Notifications.error('Startup Error', 'Failed to initialize the application');\n        }\n    }\n    \n    /**\n     * Load user settings\n     * @private\n     */\n    async loadUserSettings() {\n        const settings = Storage.get(CONFIG.STORAGE_KEYS.USER_SETTINGS);\n        if (!settings) {\n            Storage.set(CONFIG.STORAGE_KEYS.USER_SETTINGS, DEFAULT_USER_SETTINGS);\n        }\n    }\n    \n    /**\n     * Initialize all systems\n     * @private\n     */\n    initializeSystems() {\n        // These managers initialize automatically\n        // Storage - already initialized\n        // Theme - will initialize on first access\n        // Desktop - initializes automatically\n        // Taskbar - initializes automatically\n        // Notifications - initializes automatically\n    }\n    \n    /**\n     * Setup event listeners\n     * @private\n     */\n    setupEventListeners() {\n        // Handle theme changes\n        window.addEventListener('theme-changed', (e) => {\n            console.log(`Theme changed to: ${e.detail.theme}`);\n        });\n        \n        // Handle window resize\n        window.addEventListener('resize', () => {\n            this.onWindowResize();\n        });\n        \n        // Handle before unload\n        window.addEventListener('beforeunload', () => {\n            this.saveState();\n        });\n        \n        // Keyboard shortcuts\n        document.addEventListener('keydown', (e) => this.handleKeyboard(e));\n    }\n    \n    /**\n     * Handle keyboard shortcuts\n     * @private\n     */\n    handleKeyboard(e) {\n        // Alt+Tab: cycle through windows\n        if (e.altKey && e.key === 'Tab') {\n            e.preventDefault();\n            this.cycleWindows();\n        }\n        \n        // Alt+F4: close active window\n        if (e.altKey && e.key === 'F4') {\n            e.preventDefault();\n            this.closeActiveWindow();\n        }\n        \n        // Ctrl+Alt+D: toggle theme\n        if (e.ctrlKey && e.altKey && e.key === 'd') {\n            e.preventDefault();\n            Theme.toggleTheme();\n        }\n    }\n    \n    /**\n     * Cycle through windows with Alt+Tab\n     * @private\n     */\n    cycleWindows() {\n        if (Desktop.windows.length === 0) return;\n        \n        const windows = Desktop.windows.filter(w => !w.isMinimized);\n        if (windows.length === 0) return;\n        \n        const activeWindow = document.querySelector('.window.active');\n        let nextIndex = 0;\n        \n        if (activeWindow) {\n            const currentIndex = windows.findIndex(w => w.element === activeWindow);\n            nextIndex = (currentIndex + 1) % windows.length;\n        }\n        \n        windows[nextIndex].focus();\n    }\n    \n    /**\n     * Close active window\n     * @private\n     */\n    closeActiveWindow() {\n        const activeWindow = document.querySelector('.window.active');\n        if (activeWindow) {\n            const closeBtn = activeWindow.querySelector('.window-btn.close');\n            if (closeBtn) closeBtn.click();\n        }\n    }\n    \n    /**\n     * Handle window resize\n     * @private\n     */\n    onWindowResize() {\n        // Desktop manager handles this\n    }\n    \n    /**\n     * Save application state\n     * @private\n     */\n    saveState() {\n        // Save all window positions\n        Desktop.windows.forEach(w => w.savePosition());\n    }\n    \n    /**\n     * Show welcome message\n     * @private\n     */\n    showWelcome() {\n        const isFirstRun = !Storage.has('app-initialized');\n        \n        if (isFirstRun) {\n            Notifications.info(\n                'Welcome to Digital Life OS',\n                'Your personal operating system. Click app icons to get started!'\n            );\n            Storage.set('app-initialized', true);\n        } else {\n            // Show time-based greeting\n            const hour = new Date().getHours();\n            let greeting = 'Good morning';\n            \n            if (hour >= 12 && hour < 18) greeting = 'Good afternoon';\n            else if (hour >= 18) greeting = 'Good evening';\n            \n            Notifications.info(greeting, 'Welcome back to Digital Life OS');\n        }\n    }\n    \n    /**\n     * Get application statistics\n     */\n    getStats() {\n        return {\n            version: this.version,\n            isReady: this.isReady,\n            windowsOpen: Desktop.windows.length,\n            storageUsed: Storage.getSize(),\n            currentTheme: Theme.getTheme(),\n            uptime: Date.now() - this.startTime,\n        };\n    }\n    \n    /**\n     * Get performance metrics\n     */\n    getPerformance() {\n        if (!window.performance) return null;\n        \n        const perfData = window.performance.timing;\n        const pageLoadTime = perfData.loadEventEnd - perfData.navigationStart;\n        \n        return {\n            pageLoadTime,\n            domReadyTime: perfData.domContentLoadedEventEnd - perfData.navigationStart,\n            resourceLoadTime: perfData.loadEventEnd - perfData.responseEnd,\n        };\n    }\n}\n\n// Initialize application when DOM is ready\nif (document.readyState === 'loading') {\n    document.addEventListener('DOMContentLoaded', () => {\n        window.App = new DigitalLifeOS();\n        window.App.init();\n    });\n} else {\n    window.App = new DigitalLifeOS();\n    window.App.init();\n}\n\n// Make console functions available for debugging\nwindow.getStats = () => window.App?.getStats();\nwindow.getPerformance = () => window.App?.getPerformance();
+   Digital Life OS - Main Application Init
+   Application entry point and initialization
+   ============================================================ */
+
+class DigitalLifeOS {
+    constructor() {
+        this.version = CONFIG.APP_VERSION;
+        this.isReady = false;
+        this.startTime = Date.now();
+    }
+    
+    /**
+     * Initialize the application
+     */
+    async init() {
+        try {
+            console.log(`🖥️  Digital Life OS v${this.version} - Initializing...`);
+            
+            // Load user settings
+            await this.loadUserSettings();
+            
+            // Initialize systems
+            this.initializeSystems();
+            
+            // Setup event listeners
+            this.setupEventListeners();
+            
+            // Mark as ready
+            this.isReady = true;
+            window.dispatchEvent(new CustomEvent('app-ready'));
+            
+            const loadTime = Date.now() - this.startTime;
+            console.log(`✓ Digital Life OS loaded in ${loadTime}ms`);
+            
+            // Show welcome notification
+            this.showWelcome();
+            
+        } catch (error) {
+            console.error('Failed to initialize Digital Life OS:', error);
+            Notifications.error('Startup Error', 'Failed to initialize the application');
+        }
+    }
+    
+    /**
+     * Load user settings
+     * @private
+     */
+    async loadUserSettings() {
+        const settings = Storage.get(CONFIG.STORAGE_KEYS.USER_SETTINGS);
+        if (!settings) {
+            Storage.set(CONFIG.STORAGE_KEYS.USER_SETTINGS, DEFAULT_USER_SETTINGS);
+        }
+    }
+    
+    /**
+     * Initialize all systems
+     * @private
+     */
+    initializeSystems() {
+        // These managers initialize automatically
+        // Storage - already initialized
+        // Theme - will initialize on first access
+        // Desktop - initializes automatically
+        // Taskbar - initializes automatically
+        // Notifications - initializes automatically
+    }
+    
+    /**
+     * Setup event listeners
+     * @private
+     */
+    setupEventListeners() {
+        // Handle theme changes
+        window.addEventListener('theme-changed', (e) => {
+            console.log(`Theme changed to: ${e.detail.theme}`);
+        });
+        
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            this.onWindowResize();
+        });
+        
+        // Handle before unload
+        window.addEventListener('beforeunload', () => {
+            this.saveState();
+        });
+        
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => this.handleKeyboard(e));
+    }
+    
+    /**
+     * Handle keyboard shortcuts
+     * @private
+     */
+    handleKeyboard(e) {
+        // Alt+Tab: cycle through windows
+        if (e.altKey && e.key === 'Tab') {
+            e.preventDefault();
+            this.cycleWindows();
+        }
+        
+        // Alt+F4: close active window
+        if (e.altKey && e.key === 'F4') {
+            e.preventDefault();
+            this.closeActiveWindow();
+        }
+        
+        // Ctrl+Alt+D: toggle theme
+        if (e.ctrlKey && e.altKey && e.key === 'd') {
+            e.preventDefault();
+            Theme.toggleTheme();
+        }
+    }
+    
+    /**
+     * Cycle through windows with Alt+Tab
+     * @private
+     */
+    cycleWindows() {
+        if (Desktop.windows.length === 0) return;
+        
+        const windows = Desktop.windows.filter(w => !w.isMinimized);
+        if (windows.length === 0) return;
+        
+        const activeWindow = document.querySelector('.window.active');
+        let nextIndex = 0;
+        
+        if (activeWindow) {
+            const currentIndex = windows.findIndex(w => w.element === activeWindow);
+            nextIndex = (currentIndex + 1) % windows.length;
+        }
+        
+        windows[nextIndex].focus();
+    }
+    
+    /**
+     * Close active window
+     * @private
+     */
+    closeActiveWindow() {
+        const activeWindow = document.querySelector('.window.active');
+        if (activeWindow) {
+            const closeBtn = activeWindow.querySelector('.window-btn.close');
+            if (closeBtn) closeBtn.click();
+        }
+    }
+    
+    /**
+     * Handle window resize
+     * @private
+     */
+    onWindowResize() {
+        // Desktop manager handles this
+    }
+    
+    /**
+     * Save application state
+     * @private
+     */
+    saveState() {
+        // Save all window positions
+        Desktop.windows.forEach(w => w.savePosition());
+    }
+    
+    /**
+     * Show welcome message
+     * @private
+     */
+    showWelcome() {
+        const isFirstRun = !Storage.has('app-initialized');
+        
+        if (isFirstRun) {
+            Notifications.info(
+                'Welcome to Digital Life OS',
+                'Your personal operating system. Click app icons to get started!'
+            );
+            Storage.set('app-initialized', true);
+        } else {
+            // Show time-based greeting
+            const hour = new Date().getHours();
+            let greeting = 'Good morning';
+            
+            if (hour >= 12 && hour < 18) greeting = 'Good afternoon';
+            else if (hour >= 18) greeting = 'Good evening';
+            
+            Notifications.info(greeting, 'Welcome back to Digital Life OS');
+        }
+    }
+    
+    /**
+     * Get application statistics
+     */
+    getStats() {
+        return {
+            version: this.version,
+            isReady: this.isReady,
+            windowsOpen: Desktop.windows.length,
+            storageUsed: Storage.getSize(),
+            currentTheme: Theme.getTheme(),
+            uptime: Date.now() - this.startTime,
+        };
+    }
+    
+    /**
+     * Get performance metrics
+     */
+    getPerformance() {
+        if (!window.performance) return null;
+        
+        const perfData = window.performance.timing;
+        const pageLoadTime = perfData.loadEventEnd - perfData.navigationStart;
+        
+        return {
+            pageLoadTime,
+            domReadyTime: perfData.domContentLoadedEventEnd - perfData.navigationStart,
+            resourceLoadTime: perfData.loadEventEnd - perfData.responseEnd,
+        };
+    }
+}
+
+// Initialize application when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+        window.App = new DigitalLifeOS();
+        window.App.init();
+    });
+} else {
+    window.App = new DigitalLifeOS();
+    window.App.init();
+}
+
+// Make console functions available for debugging
+window.getStats = () => window.App?.getStats();
+window.getPerformance = () => window.App?.getPerformance();

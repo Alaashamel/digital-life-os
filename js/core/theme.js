@@ -71,6 +71,16 @@ class ThemeManager {
     }
     
     /**
+     * Setup theme toggle button
+     */
+    setupThemeToggle() {
+        const toggleBtn = document.getElementById('theme-toggle');
+        if (toggleBtn) {
+            toggleBtn.addEventListener('click', () => this.toggleTheme());
+        }
+    }
+
+    /**
      * Get CSS variable value
      * @param {string} varName - CSS variable name (without --)
      * @returns {string} CSS variable value

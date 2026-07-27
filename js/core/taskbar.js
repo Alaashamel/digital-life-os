@@ -10,6 +10,179 @@ class TaskbarManager {
         this.init();
     }
     
-    /**\n     * Initialize taskbar\n     */\n    init() {\n        this.launcher = document.getElementById('app-launcher');\n        this.windowsContainer = document.getElementById('taskbar-windows');\n        this.createAppIcons();\n        this.setupEventListeners();\n    }\n    \n    /**\n     * Create app launcher icons\n     */\n    createAppIcons() {\n        CONFIG.APPS.forEach(app => {\n            const icon = createElement('button', {\n                class: 'app-icon',\n                'data-app-id': app.id,\n                title: app.name,\n            }, app.icon);\n            \n            icon.addEventListener('click', () => this.launchApp(app));\n            this.launcher.appendChild(icon);\n        });\n    }\n    \n    /**\n     * Launch application\n     */\n    launchApp(app) {\n        const window = Desktop.openWindow(app);\n        \n        if (app.id === 'notes') {\n            NotesApp.init(window);\n        } else if (app.id === 'music') {\n            MusicApp.init(window);\n        } else if (app.id === 'calendar') {\n            CalendarApp.init(window);\n        } else if (app.id === 'chatbot') {\n            ChatbotApp.init(window);\n        } else if (app.id === 'weather') {\n            WeatherApp.init(window);\n        } else if (app.id === 'games') {\n            GamesApp.init(window);\n        }\n    }\n    \n    /**\n     * Update window indicators in taskbar\n     */\n    updateWindowIndicators() {\n        this.windowsContainer.innerHTML = '';\n        \n        Desktop.windows.forEach(window => {\n            const indicator = createElement('button', {\n                class: `window-indicator ${!window.isMinimized ? 'active' : ''}`,\n                'data-window-id': window.id,\n            }, window.app.name);\n            \n            indicator.addEventListener('click', () => {\n                if (window.isMinimized) {\n                    window.restore();\n                } else {\n                    window.minimize();\n                }\n                this.updateWindowIndicators();\n            });\n            \n            this.windowsContainer.appendChild(indicator);\n        });\n    }\n    \n    /**\n     * Setup event listeners\n     * @private\n     */\n    setupEventListeners() {\n        window.addEventListener('window-closed', () => this.updateWindowIndicators());\n        \n        // Settings button\n        const settingsBtn = document.getElementById('settings-btn');\n        if (settingsBtn) {\n            settingsBtn.addEventListener('click', () => this.openSettings());\n        }\n    }\n    \n    /**\n     * Open settings\n     */\n    openSettings() {\n        const settingsApp = {\n            id: 'settings',\n            name: 'Settings',\n            icon: '⚙️',\n            width: 500,\n            height: 600,\n        };\n        \n        const existingWindow = Desktop.windows.find(w => w.app.id === 'settings');\n        if (existingWindow) {\n            existingWindow.focus();\n        } else {\n            // Settings would be implemented here\n            Notifications.info('Settings', 'Settings app coming soon!');\n        }\n    }\n}\n\n// Global taskbar manager\nconst Taskbar = new TaskbarManager();
+    /**
+     * Initialize taskbar
+     */
+    init() {
+        this.launcher = document.getElementById('app-launcher');
+        this.windowsContainer = document.getElementById('taskbar-windows');
+        this.createAppIcons();
+        this.setupEventListeners();
+        this.updateClock();
+        setInterval(() => this.updateClock(), 1000);
+    }
+    
+    /**
+     * Update system clock
+     */
+    updateClock() {
+        const timeEl = document.getElementById('clock-time');
+        const dateEl = document.getElementById('clock-date');
+        
+        if (!timeEl || !dateEl) return;
+        
+        const now = new Date();
+        const time = now.toLocaleTimeString('en-US', { 
+            hour: '2-digit', 
+            minute: '2-digit',
+            hour12: true 
+        });
+        const date = now.toLocaleDateString('en-US', { 
+            month: 'short', 
+            day: 'numeric' 
+        });
+        
+        timeEl.textContent = time;
+        dateEl.textContent = date;
+    }
+    
+    /**
+     * Create app launcher icons
+     */
+    createAppIcons() {
+        CONFIG.APPS.forEach(app => {
+            const icon = document.createElement('button');
+            icon.className = 'app-icon';
+            icon.dataset.appId = app.id;
+            icon.title = app.name;
+            icon.innerHTML = app.icon;
+            
+            icon.addEventListener('click', () => this.launchApp(app));
+            this.launcher.appendChild(icon);
+        });
+    }
+    
+    /**
+     * Launch application
+     */
+    launchApp(app) {
+        const existingWindow = Desktop.windows.find(w => w.app.id === app.id);
+        if (existingWindow) {
+            existingWindow.focus();
+            if (existingWindow.isMinimized) existingWindow.restore();
+            return;
+        }
+        
+const window = Desktop.openWindow(app);
+        
+        // Initialize the appropriate app
+        switch(app.id) {
+            case 'notes':
+                if (typeof NotesApp !== 'undefined' && NotesApp.init) {
+                    NotesApp.init(window);
+                }
+                break;
+            case 'music':
+                if (typeof MusicApp !== 'undefined' && MusicApp.init) {
+                    MusicApp.init(window);
+                }
+                break;
+            case 'calendar':
+                if (typeof CalendarApp !== 'undefined' && CalendarApp.init) {
+                    CalendarApp.init(window);
+                }
+                break;
+            case 'chatbot':
+                if (typeof ChatbotApp !== 'undefined' && ChatbotApp.init) {
+                    ChatbotApp.init(window);
+                }
+                break;
+            case 'weather':
+                if (typeof WeatherApp !== 'undefined' && WeatherApp.init) {
+                    WeatherApp.init(window);
+                }
+                break;
+            case 'games':
+                if (typeof GamesApp !== 'undefined' && GamesApp.init) {
+                    GamesApp.init(window);
+                }
+                break;
+        }
+        
+        this.updateWindowIndicators();
+    }
+    
+    /**
+     * Update window indicators in taskbar
+     */
+    updateWindowIndicators() {
+        this.windowsContainer.innerHTML = '';
+        
+        Desktop.windows.forEach(window => {
+            const indicator = document.createElement('button');
+            indicator.className = `window-indicator ${!window.isMinimized ? 'active' : ''}`;
+            indicator.dataset.windowId = window.id;
+            indicator.textContent = window.title;
+            
+            indicator.addEventListener('click', () => {
+                if (window.isMinimized) {
+                    window.maximize();
+                    window.isMinimized = false;
+                } else {
+                    window.minimize();
+                }
+                this.updateWindowIndicators();
+            });
+            
+            this.windowsContainer.appendChild(indicator);
+        });
+    }
+    
+    /**
+     * Setup event listeners
+     * @private
+     */
+    setupEventListeners() {
+        // Settings button
+        const settingsBtn = document.getElementById('settings-btn');
+        if (settingsBtn) {
+            settingsBtn.addEventListener('click', () => this.openSettings());
+        }
+        
+        // Theme toggle
+        const themeBtn = document.getElementById('theme-toggle');
+        if (themeBtn) {
+            themeBtn.addEventListener('click', () => Theme.toggleTheme());
+        }
+    }
+    
+    /**
+     * Open settings
+     */
+    openSettings() {
+        const settingsApp = {
+            id: 'settings',
+            name: 'Settings',
+            icon: '⚙️',
+            width: 500,
+            height: 600,
+        };
+        
+        const existingWindow = Desktop.windows.find(w => w.app.id === 'settings');
+        if (existingWindow) {
+            existingWindow.focus();
+            if (existingWindow.isMinimized) existingWindow.restore();
+        } else {
+const window = Desktop.openWindow(settingsApp);
+            
+            if (typeof SettingsApp !== 'undefined' && SettingsApp.init) {
+                SettingsApp.init(window);
+            }
+            
+            this.updateWindowIndicators();
+        }
+    }
+}
 
-// Placeholder app objects (will be filled in Phase 2)\nconst NotesApp = { init: () => {} };\nconst MusicApp = { init: () => {} };\nconst CalendarApp = { init: () => {} };\nconst ChatbotApp = { init: () => {} };\nconst WeatherApp = { init: () => {} };\nconst GamesApp = { init: () => {} };
+// Global taskbar manager
+const Taskbar = new TaskbarManager();
