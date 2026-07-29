@@ -1,5 +1,8 @@
 # 🖥️ Digital Life OS
 
+![License](https://img.shields.io/badge/license-MIT-blue.svg) ![Language](https://img.shields.io/badge/language-JavaScript-informational.svg) ![Last Commit](https://img.shields.io/github/last-commit/Alaashamel/digital-life-os)
+
+
 A personal operating system-like web application featuring a sleek desktop interface with multiple integrated apps. This project demonstrates advanced front-end architecture, clean code practices, and professional Git workflow.
 
 ## 📋 Vision & Goals
